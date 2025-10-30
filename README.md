@@ -4,16 +4,21 @@ Portal cautivo completo con sistema de tiempo limitado y cooldowns para Raspberr
 
 ## 🎯 Descripción
 
-Este proyecto proporciona un comando único que genera automáticamente todo un portal cautivo WiFi para Raspberry Pi Zero 2W. Cuando un dispositivo se conecta al WiFi "Redmi Note 13", es redirigido automáticamente a un portal web donde debe aceptar términos y condiciones para obtener 1 hora de acceso a internet.
+Este proyecto proporciona una secuencia de 6 comandos cortos que generan automáticamente todo un portal cautivo WiFi para Raspberry Pi Zero 2W. Cuando un dispositivo se conecta al WiFi "Redmi Note 13", es redirigido automáticamente a un portal web donde debe aceptar términos y condiciones para obtener 1 hora de acceso a internet.
 
 ## ⚡ Uso Rápido
 
-Todo el proyecto se genera con un único comando bash documentado en `command.md`.
+Todo el proyecto se genera con 6 comandos bash consecutivos documentados en `command.md`.
 
-1. **Lee el archivo `command.md`** - contiene el comando completo
-2. **Copia el comando bash** completo 
-3. **Pégalo en tu Raspberry Pi** y ejecútalo
-4. **Ejecuta el script de instalación** generado
+1. **Abre el archivo `command.md`** y localiza el bloque del **Paso 1**.
+2. **Copia y ejecuta el bloque del Paso 1** en la terminal de tu Raspberry Pi.
+3. **Repite el proceso con los Pasos 2 a 6** para crear todos los archivos.
+4. **Ejecuta el script de instalación generado**:
+   ```bash
+   cd ~/wifi-portal
+   sudo bash setup.sh
+   sudo reboot
+   ```
 
 ## 🚀 Características Principales
 

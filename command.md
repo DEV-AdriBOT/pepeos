@@ -1,10 +1,30 @@
-# 🚀 WiFi Portal "Redmi Note 13" - Instalación en Un Solo Comando
+# 🚀 WiFi Portal "Redmi Note 13" - Instalación Paso a Paso
 
-Copia y pega este comando completo en tu Raspberry Pi Zero 2W para crear todo el proyecto:
+Ahora puedes crear el proyecto completo ejecutando **6 comandos** consecutivos, cada uno con un tamaño manejable. Sigue el orden indicado y espera a que cada paso termine antes de continuar con el siguiente.
+
+## 🧠 Antes de comenzar
+- Ejecuta todos los comandos directamente en tu Raspberry Pi Zero 2W.
+- Asegúrate de tener conexión a internet durante la instalación.
+- Cada comando crea una parte del proyecto hasta completarlo por completo.
+
+## 🗂️ Resumen de pasos
+1. Crear la estructura base y el backend (main.py).
+2. Añadir los estilos CSS.
+3. Generar las plantillas `index.html` y `connected.html`.
+4. Generar las plantillas `cooldown.html` y `admin.html`.
+5. Crear los archivos de datos y el script `setup.sh`.
+6. Crear el `README.md` y mostrar el resumen final.
+
+---
+
+## ✅ Paso 1 – Estructura base y backend (main.py)
+Crea la estructura de directorios y el backend en Flask.
 
 ```bash
-cd ~ && mkdir -p wifi-portal/app/{static,templates} wifi-portal/data && \
-cat > wifi-portal/app/main.py << 'EOF'
+cd ~
+mkdir -p wifi-portal/app/{static,templates} wifi-portal/data
+
+cat > wifi-portal/app/main.py <<'EOF'
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import os
@@ -79,7 +99,6 @@ def cleanup_expired_sessions():
             block_mac_internet(mac)
             changed = True
         
-        # Limpiar cooldowns expirados
         if not data.get('active') and data.get('cooldown_end', 0) < now:
             del users[mac]
             changed = True
@@ -150,12 +169,10 @@ def connect():
     if status['status'] == 'active':
         return redirect(url_for('connected'))
     
-    # Iniciar nueva sesión
     users = load_json(USERS_FILE)
     now = time.time()
     
     session_time = SESSION_DURATION
-    # Verificar si hay tiempo extra almacenado
     if mac in users and users[mac].get('extra_time', 0) > 0:
         session_time += users[mac]['extra_time']
         extra_time = 0
@@ -244,7 +261,6 @@ def redeem():
     if codes[code].get('used'):
         return render_template('index.html', error="Este código ya fue utilizado")
     
-    # Marcar código como usado
     codes[code]['used'] = True
     codes[code]['used_by'] = mac
     codes[code]['used_at'] = datetime.now().isoformat()
@@ -254,18 +270,15 @@ def redeem():
     code_type = codes[code]['type']
     
     if code_type == 'extra_time':
-        # Agregar 1 hora extra
         if mac in users and users[mac].get('active'):
             users[mac]['session_end'] += 3600
             users[mac]['session_duration'] += 3600
         else:
-            # Guardar para la próxima sesión
             if mac not in users:
                 users[mac] = {}
             users[mac]['extra_time'] = users[mac].get('extra_time', 0) + 3600
         message = "¡Código canjeado! Se agregó 1 hora extra"
-    else:  # reduced_cooldown
-        # Reducir cooldown a 2 horas
+    else:
         if mac not in users:
             users[mac] = {}
         users[mac]['cooldown_duration'] = REDUCED_COOLDOWN
@@ -317,10 +330,8 @@ def generate_code():
     
     codes = load_json(CODES_FILE)
     
-    # Generar código aleatorio de 8 caracteres
     new_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
     
-    # Asegurar que sea único
     while new_code in codes:
         new_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
     
@@ -345,31 +356,36 @@ def status():
     return jsonify(get_user_status(mac))
 
 def background_cleanup():
-    """Tarea en segundo plano para limpiar sesiones expiradas cada 5 minutos"""
     while True:
         try:
             cleanup_expired_sessions()
         except Exception:
             pass
-        time.sleep(300)  # 5 minutos
+        time.sleep(300)
 
 if __name__ == '__main__':
-    # Crear archivos de datos si no existen
     os.makedirs(DATA_DIR, exist_ok=True)
     if not os.path.exists(USERS_FILE):
         save_json(USERS_FILE, {})
     if not os.path.exists(CODES_FILE):
         save_json(CODES_FILE, {})
     
-    # Limpieza inicial y arranque de tarea en segundo plano
     cleanup_expired_sessions()
     cleanup_thread = Thread(target=background_cleanup, daemon=True)
     cleanup_thread.start()
     
     app.run(host='0.0.0.0', port=80, debug=False)
 EOF
+```
 
-cat > wifi-portal/app/static/style.css << 'EOF'
+---
+
+## ✅ Paso 2 – Estilos del portal (style.css)
+Añade los estilos para todas las páginas.
+
+```bash
+cd ~
+cat > wifi-portal/app/static/style.css <<'EOF'
 * {
     margin: 0;
     padding: 0;
@@ -654,8 +670,16 @@ select {
     }
 }
 EOF
+```
 
-cat > wifi-portal/app/templates/index.html << 'EOF'
+---
+
+## ✅ Paso 3 – Plantillas `index.html` y `connected.html`
+Genera las vistas principales para los usuarios.
+
+```bash
+cd ~
+cat > wifi-portal/app/templates/index.html <<'EOF'
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -728,14 +752,13 @@ cat > wifi-portal/app/templates/index.html << 'EOF'
             btn.disabled = !this.checked;
         });
         
-        // Inicializar estado del botón
         btn.disabled = !checkbox.checked;
     </script>
 </body>
 </html>
 EOF
 
-cat > wifi-portal/app/templates/connected.html << 'EOF'
+cat > wifi-portal/app/templates/connected.html <<'EOF'
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -793,8 +816,16 @@ cat > wifi-portal/app/templates/connected.html << 'EOF'
 </body>
 </html>
 EOF
+```
 
-cat > wifi-portal/app/templates/cooldown.html << 'EOF'
+---
+
+## ✅ Paso 4 – Plantillas `cooldown.html` y `admin.html`
+Genera las páginas para el período de espera y el panel de administración.
+
+```bash
+cd ~
+cat > wifi-portal/app/templates/cooldown.html <<'EOF'
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -838,7 +869,7 @@ cat > wifi-portal/app/templates/cooldown.html << 'EOF'
 </html>
 EOF
 
-cat > wifi-portal/app/templates/admin.html << 'EOF'
+cat > wifi-portal/app/templates/admin.html <<'EOF'
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -949,16 +980,24 @@ cat > wifi-portal/app/templates/admin.html << 'EOF'
 </body>
 </html>
 EOF
+```
 
-cat > wifi-portal/data/users.json << 'EOF'
+---
+
+## ✅ Paso 5 – Archivos de datos y script `setup.sh`
+Crea las bases de datos JSON y el script de instalación.
+
+```bash
+cd ~
+cat > wifi-portal/data/users.json <<'EOF'
 {}
 EOF
 
-cat > wifi-portal/data/codes.json << 'EOF'
+cat > wifi-portal/data/codes.json <<'EOF'
 {}
 EOF
 
-cat > wifi-portal/setup.sh << 'EOF'
+cat > wifi-portal/setup.sh <<'EOF'
 #!/bin/bash
 
 echo "=========================================="
@@ -966,13 +1005,11 @@ echo "  Instalación WiFi Portal Redmi Note 13  "
 echo "=========================================="
 echo ""
 
-# Verificar que se ejecuta como root
 if [ "$EUID" -ne 0 ]; then 
     echo "❌ Por favor ejecuta como root (usa sudo)"
     exit 1
 fi
 
-# Obtener el usuario real (no root)
 REAL_USER=${SUDO_USER:-$USER}
 PROJECT_DIR="/home/$REAL_USER/wifi-portal"
 
@@ -1023,40 +1060,31 @@ nohook wpa_supplicant
 DHCPCD_EOF
 
 echo "🔥 Configurando firewall..."
-# Habilitar IP forwarding
 sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
 sysctl -w net.ipv4.ip_forward=1
 
-# Limpiar reglas existentes
 iptables -F
 iptables -t nat -F
 iptables -X
 
-# NAT para compartir internet (wlan1 o eth0 según disponibilidad)
 if ip link show wlan1 &> /dev/null; then
     WAN_IFACE="wlan1"
 elif ip link show eth0 &> /dev/null; then
     WAN_IFACE="eth0"
 else
-    WAN_IFACE="wlan1"  # Default fallback
+    WAN_IFACE="wlan1"
 fi
 
 echo "🌐 Usando $WAN_IFACE como interfaz WAN"
 
 iptables -t nat -A POSTROUTING -o $WAN_IFACE -j MASQUERADE
 iptables -A FORWARD -i $WAN_IFACE -o wlan0 -m state --state RELATED,ESTABLISHED -j ACCEPT
-
-# Por defecto bloquear todo desde wlan0
 iptables -A FORWARD -i wlan0 -o $WAN_IFACE -j DROP
-
-# Redirigir todo el tráfico HTTP al portal (excepto el que ya está autorizado)
 iptables -t nat -A PREROUTING -i wlan0 -p tcp --dport 80 -j DNAT --to-destination 192.168.4.1:80
 iptables -t nat -A PREROUTING -i wlan0 -p tcp --dport 443 -j DNAT --to-destination 192.168.4.1:80
 
-# Guardar reglas de iptables
 iptables-save > /etc/iptables.rules
 
-# Restaurar reglas en boot
 cat > /etc/network/if-pre-up.d/iptables << 'IPTABLES_RESTORE_EOF'
 #!/bin/sh
 iptables-restore < /etc/iptables.rules
@@ -1116,9 +1144,17 @@ echo "   sudo reboot"
 echo ""
 EOF
 
-chmod +x wifi-portal/setup.sh && \
+chmod +x wifi-portal/setup.sh
+```
 
-cat > wifi-portal/README.md << 'EOF'
+---
+
+## ✅ Paso 6 – README y mensaje final
+Crea la documentación del proyecto y muestra un resumen.
+
+```bash
+cd ~
+cat > wifi-portal/README.md <<'EOF'
 # 📱 WiFi Portal "Redmi Note 13" para Raspberry Pi Zero 2W
 
 Portal cautivo completo con sistema de tiempo y cooldowns para Raspberry Pi.
@@ -1313,29 +1349,18 @@ echo "🔧 Código admin: 'femboy'"
 
 ---
 
-## 🎯 Cómo usar este comando
+## 🎯 Cómo usar estos comandos
 
-1. **Copia todo el bloque de código** desde `cd ~` hasta el final
-2. **Pégalo en la terminal** de tu Raspberry Pi
-3. **Presiona Enter** y espera unos segundos
-4. **Ejecuta la instalación:**
+1. Copia y ejecuta el comando del **Paso 1**.
+2. Repite el proceso para cada paso hasta el **Paso 6**.
+3. Cuando termines, entra al proyecto y lanza la instalación:
    ```bash
    cd ~/wifi-portal
    sudo bash setup.sh
    sudo reboot
    ```
-
-¡Y listo! El portal estará funcionando después del reinicio. 🎉
-
----
-
-## 📝 Notas Importantes
-
-- **Puerto 80 requiere sudo:** El servicio Flask se ejecuta como root para usar el puerto 80
-- **Internet compartido:** La Pi debe tener internet vía Ethernet o segundo adaptador WiFi (wlan1)
-- **Compatibilidad:** Probado en Raspberry Pi Zero 2W con Raspberry Pi OS Lite
-- **Personalización:** Todos los tiempos, códigos y textos son modificables en el código
+4. Tras el reinicio, el portal cautivo quedará activo.
 
 ---
 
-¿Quieres alguna modificación o característica adicional? 🚀
+¿Necesitas que lo empaquete en menos pasos o con cambios adicionales? ¡Avísame! 🚀
